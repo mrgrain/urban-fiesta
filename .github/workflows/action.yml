@@ -46,6 +46,6 @@ jobs:
           LATEST="latest-toolkit-lib"
           echo "$S3_PATH" > "$LATEST"
           (! aws s3 ls --human-readable $S3_URI \
-          && aws s3 cp --dryrun dist/docs.zip $S3_URI \
-          && aws s3 cp --dryrun $LATEST s3://$BUCKET_NAME/$LATEST) \
+          && aws s3 cp dist/docs.zip $S3_URI \
+          && aws s3 cp $LATEST s3://$BUCKET_NAME/$LATEST) \
           || (echo "Docs artifact already published, skipping upload")
