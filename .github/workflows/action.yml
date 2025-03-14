@@ -54,7 +54,7 @@ jobs:
             
             # File was uploaded successfully, update the latest pointer
             echo "New docs artifact uploaded successfully, updating latest pointer"
-            echo "$S3_PATH" | aws s3 cp - "s3://$BUCKET/$LATEST"
+            echo "$S3_PATH" | aws s3 cp - "s3://$BUCKET_NAME/$LATEST"
 
           elif echo "$OUTPUT" | grep -q "PreconditionFailed"; then
             # Check specifically for PreconditionFailed in the error output
