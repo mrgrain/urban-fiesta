@@ -39,25 +39,33 @@ jobs:
         env:
           BUCKET_NAME: ${{ vars.DOCS_BUCKET_NAME }}
           DOCS_STREAM: toolkit-lib
-        run: |-
-          echo ::add-mask::$BUCKET_NAME
+        run: |
+          echo "Uploading docs to S3"
+          echo ""::add-mask::$BUCKET_NAME"
           S3_PATH="$DOCS_STREAM/aws-cdk-toolkit-lib-v$(cat dist/version.txt).zip"
-          S3_URI="s3://$BUCKET_NAME/$S3_PATH"
           LATEST="latest-toolkit-lib"
-          echo "$S3_PATH" > "$LATEST"
 
-          # Check if file exists using head-object
-          aws s3api head-object --bucket "$BUCKET_NAME" --key "$S3_PATH" &>/dev/null || HEAD_RESULT=$?
+          # Capture both stdout and stderr
+          if OUTPUT=$(aws s3api put-object \
+            --bucket "$BUCKET_NAME" \
+            --key "$S3_PATH" \
+            --body dist/docs.zip \
+            --if-none-match "*" 2>&1); then
+            
+            # File was uploaded successfully, update the latest pointer
+            echo "New docs artifact uploaded successfully"
+            echo "$S3_PATH" | aws s3api put-object \
+              --bucket "$BUCKET_NAME" \
+              --key "$LATEST" \
+              --body - || exit 1
 
-          if [[ $HEAD_RESULT -eq 0 ]]; then
-            echo "Docs artifact already published, skipping upload"
-          elif [[ $HEAD_RESULT -eq 254 ]]; then
-            # Error code 254 specifically indicates a 404 (not found)
-            # Proceed with upload since file doesn't exist
-            aws s3 cp dist/docs.zip "$S3_URI" && \
-            aws s3 cp "$LATEST" "s3://$BUCKET_NAME/$LATEST"
+          elif echo "$OUTPUT" | grep -q "PreconditionFailed"; then
+            # Check specifically for PreconditionFailed in the error output
+            echo "::warning::File already exists in S3. Skipping upload."
+            exit 0
+
           else
-            # Any other error (like permissions, network issues, etc)
-            echo "Error: Failed to check if file exists. Check permissions and connectivity."
+            # Any other error (permissions, etc)
+            echo "::error::Failed to upload docs artifact: $OUTPUT"
             exit 1
           fi
