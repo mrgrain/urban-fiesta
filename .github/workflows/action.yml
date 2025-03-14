@@ -47,9 +47,12 @@ jobs:
           echo "$S3_PATH" > "$LATEST"
 
           # Check if file exists using head-object
-          if aws s3api head-object --bucket "$BUCKET_NAME" --key "$S3_PATH" &>/dev/null; then
+          aws s3api head-object --bucket "$BUCKET_NAME" --key "$S3_PATH" &>/dev/null
+          HEAD_RESULT=$?
+
+          if [[ $HEAD_RESULT -eq 0 ]]; then
             echo "Docs artifact already published, skipping upload"
-          elif [[ $? -eq 254 ]]; then
+          elif [[ $HEAD_RESULT -eq 254 ]]; then
             # Error code 254 specifically indicates a 404 (not found)
             # Proceed with upload since file doesn't exist
             aws s3 cp dist/docs.zip "$S3_URI" && \
