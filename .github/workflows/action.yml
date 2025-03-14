@@ -41,9 +41,9 @@ jobs:
           DOCS_STREAM: toolkit-lib
         run: |-
           echo ::add-mask::$BUCKET_NAME
-          echo "S3_PATH=$DOCS_STREAM/aws-cdk-toolkit-lib-v$(cat dist/version.txt).zip" >> "$GITHUB_ENV"
-          echo "S3_URI=s3://$BUCKET_NAME/$S3_PATH" >> "$GITHUB_ENV"
-          echo "LATEST=latest-toolkit-lib" >> "$GITHUB_ENV"
+          S3_PATH="$DOCS_STREAM/aws-cdk-toolkit-lib-v$(cat dist/version.txt).zip"
+          S3_URI="s3://$BUCKET_NAME/$S3_PATH"
+          LATEST="latest-toolkit-lib"
           echo "$S3_PATH" > "$LATEST"
           (! aws s3 ls --human-readable $S3_URI \
           && aws s3 cp --dryrun dist/docs.zip $S3_URI \
