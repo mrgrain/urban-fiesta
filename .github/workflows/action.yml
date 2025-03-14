@@ -47,7 +47,6 @@ jobs:
           echo "$S3_PATH" > "$LATEST"
 
           # Check if file exists using head-object
-          aws s3api head-object --bucket "$BUCKET_NAME" --key "$S3_PATH" &>/dev/null
           aws s3api head-object --bucket "$BUCKET_NAME" --key "$S3_PATH" &>/dev/null || HEAD_RESULT=$?
 
           if [[ $HEAD_RESULT -eq 0 ]]; then
