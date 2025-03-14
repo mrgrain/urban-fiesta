@@ -1,0 +1,51 @@
+name: action
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - "main"
+jobs:
+  do_stuff:
+    name: "Upload to S3"
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    environment: releasing
+    steps:
+      - run: |-
+          mkdir -p dist
+          echo "1.0.0" > dist/version.txt
+          touch dist/docs.zip
+          echo "1.0.0" > dist/docs.zip
+      - name: Authenticate Via OIDC Role
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ vars.AWS_ROLE_TO_ASSUME_FOR_ACCOUNT }}
+          role-session-name: mrgrain@urban-fiesta
+          mask-aws-account-id: true
+      - name: Assume the publishing role
+        id: publishing-creds
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ vars.PUBLISH_ROLE_ARN }}
+          role-session-name: mrgrain@urban-fiesta
+          mask-aws-account-id: true
+          role-chaining: true
+      - name: Publish docs
+        env:
+          BUCKET_NAME: ${{ vars.DOCS_BUCKET_NAME }}
+          DOCS_STREAM: toolkit-lib
+        run: |-
+          echo ::add-mask::$BUCKET_NAME
+          echo "S3_PATH=$DOCS_STREAM/aws-cdk-toolkit-lib-v$(cat dist/version.txt).zip" >> "$GITHUB_ENV"
+          echo "S3_URI=s3://$BUCKET_NAME/$S3_PATH" >> "$GITHUB_ENV"
+          echo "LATEST=latest-toolkit-lib" >> "$GITHUB_ENV"
+          echo "$S3_PATH" > "$LATEST"
+          (! aws s3 ls --human-readable $S3_URI \
+          && aws s3 cp --dryrun dist/docs.zip $S3_URI \
+          && aws s3 cp --dryrun $LATEST s3://$BUCKET_NAME/$LATEST) \
+          || (echo "Docs artifact already published, skipping upload")
