@@ -63,6 +63,6 @@ jobs:
 
           else
             # Any other error (permissions, etc)
-            echo "::error::Failed to upload docs artifact: $OUTPUT"
+            echo "::error::Failed to upload docs artifact"
             exit 1
           fi
