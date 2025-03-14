@@ -46,17 +46,16 @@ jobs:
           LATEST="latest-toolkit-lib"
           echo "$S3_PATH" > "$LATEST"
 
-          # First check if we can access the bucket
-          if ! aws s3 ls "$BUCKET_NAME" &>/dev/null; then
-            echo "Error: Cannot access bucket $BUCKET_NAME. Check permissions."
-            exit 1
-          fi
-
-          # Then check if file exists
-          if aws s3 ls --human-readable "$S3_URI" &>/dev/null; then
+          # Check if file exists using head-object
+          if aws s3api head-object --bucket "$BUCKET_NAME" --key "$S3_PATH" &>/dev/null; then
             echo "Docs artifact already published, skipping upload"
-          else
-            # File doesn't exist, proceed with upload
+          elif [[ $? -eq 254 ]]; then
+            # Error code 254 specifically indicates a 404 (not found)
+            # Proceed with upload since file doesn't exist
             aws s3 cp dist/docs.zip "$S3_URI" && \
             aws s3 cp "$LATEST" "s3://$BUCKET_NAME/$LATEST"
+          else
+            # Any other error (like permissions, network issues, etc)
+            echo "Error: Failed to check if file exists. Check permissions and connectivity."
+            exit 1
           fi
